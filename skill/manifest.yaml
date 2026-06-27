@@ -1,0 +1,9 @@
+name: redkey-ascii-engine
+description: "Drive the RedKey multi-script ASCII/glyph engine: scene transitions (glyph dissolves), glyph backdrops, apply-to-footage, WebM render. Use for reels/video."
+tags: [redkey, ascii, glyph, video, reel, transition, motion-graphics, creative]
+vars: {}
+files:
+  - source: SKILL.md
+    dest:   SKILL.md
+    mode:   0o644
+    raw:    true

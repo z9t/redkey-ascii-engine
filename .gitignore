@@ -1,0 +1,8 @@
+input.*
+logo.png
+*.webm
+*.mp4
+*.mov
+*.gif
+.DS_Store
+frames-*/

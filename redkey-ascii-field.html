@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RedKey Multi-Script ASCII Field</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:monospace}
+  #c{display:block;width:100vw;height:100vh}
+  #ui{position:fixed;top:10px;left:12px;color:#b8aa98;font-size:13px;opacity:.55;user-select:none}
+  #ui:hover{opacity:1}
+  #ui label{cursor:pointer}
+  #ui input{vertical-align:middle}
+</style>
+</head>
+<body>
+<!--
+  RedKey multi-script ASCII field — animated grid of REAL glyphs from 20 world scripts.
+  Colours: RedKey red #dc2626 (CJK) · tan #b8aa98 (Middle-East/South+SE-Asian) · white #fafafa (European/other).
+  Real text characters (canvas fillText), gentle speed. Self-contained — drop into a site or screen-record for video.
+  Tunables: CELL (glyph size), FPS, REROLL (how often a cell changes), DRIFT (how fast colour regions move).
+  Emojis: toggle with the checkbox, or set EMOJIS=false below.
+-->
+<div id="ui"><label><input type="checkbox" id="emoji"> emojis</label></div>
+<canvas id="c"></canvas>
+<script>
+const CELL = 22, FPS = 18, REROLL = 0.035, DRIFT = 0.018;   // tweak to taste
+let EMOJIS = false;
+
+// Real glyphs from 20 world scripts (flattened to individual characters)
+const SCRIPTS = {
+  arabic:["بسم","الله","الحمد","نور","حياة","قلم","علم","سلام"], japanese:["夢","風","月","花","空","星","海","心","光","影","桜","雪","炎"],
+  korean:["달","별","꽃","바다","하늘","숲","빛","소리","길","봄"], chinese:["龍","鳳","山","水","天","地","道","禪","雲","霧","虎","鶴","竹","梅"],
+  hindi:["प्रेम","शांति","ज्ञान","शक्ति","आकाश","अग्नि","जल"], tamil:["காதல்","அமைதி","ஞானம்","வானம்","நீர்"],
+  cyrillic:["мир","свет","душа","сила","небо","огонь","вода","ветер"], greek:["ψυχή","λόγος","σοφία","χάος","κόσμος","φύσις"],
+  thai:["ฝัน","ฟ้า","จันทร์","ดาว","น้ำ","ไฟ","ลม","ดิน"], hebrew:["שלום","אמת","חכמה","אור","חיים","אהבה","רוח"],
+  georgian:["მზე","მთვარე","ზღვა","ცეცხლი","ქარი"], armenian:["սեր","լույս","կյանք","ուժ","արև","լուսին"],
+  burmese:["ကြယ်","လ","နေ","မီး","ရေ","လေ"], khmer:["ផ្កាយ","ព្រះចន្ទ","ភ្លើង","ទឹក"],
+  lao:["ດາວ","ເດືອນ","ນໍ້າ","ໄຟ","ລົມ"], mongolian:["нар","сар","од","гал","ус","тэнгэр"],
+  tibetan:["རྨི་ལམ།","སྐར་མ།","ཟླ་བ།","ཉི་མ།","མེ།","ཆུ།"], amharic:["ፍቅር","ሰላም","ብርሃን","ሕይወት","ውሃ"],
+  uyghur:["ئارزۇ","يۇلتۇز","ئاي","كۈن","ئوت","سۇ"], devanagari:["ॐ","अ","क","म","श","ह"],
+};
+const EMOJI_POOL = ["✨","⭐","🌟","💫","🔥","💧","🌊","🌙","☀️","🌿","⚡","💎","🌈","🫧","🌀","🧿","🪷"];
+
+// 3 RedKey colour bands, each a pool of real glyphs from grouped scripts
+function flat(...keys){ return keys.flatMap(k => (SCRIPTS[k]||[]).flatMap(w => Array.from(w))); }
+const BANDS = [
+  { color:"#dc2626", pool: flat("chinese","japanese","korean") },                                   // red  — CJK
+  { color:"#b8aa98", pool: flat("arabic","hebrew","thai","tibetan","hindi","tamil","burmese","khmer","lao","uyghur","devanagari") }, // tan
+  { color:"#fafafa", pool: flat("greek","cyrillic","armenian","georgian","amharic","mongolian") },  // white
+];
+
+const canvas = document.getElementById("c"), ctx = canvas.getContext("2d");
+document.getElementById("emoji").addEventListener("change", e => EMOJIS = e.target.checked);
+let cols, rows, cells, t = 0;
+
+function rand(a){ return a[(Math.random()*a.length)|0]; }
+function pick(band){
+  if (EMOJIS && Math.random() < 0.12) return rand(EMOJI_POOL);
+  return rand(BANDS[band].pool);
+}
+function bandAt(x,y,time){ // slow drifting noise → which colour region
+  const n = Math.sin(x*0.18 + time*DRIFT) * Math.cos(y*0.22 - time*DRIFT*0.7) + Math.sin((x+y)*0.09 + time*DRIFT*0.5);
+  return n < -0.4 ? 0 : n < 0.5 ? 1 : 2;
+}
+function build(){
+  const dpr = Math.min(devicePixelRatio||1, 2);
+  canvas.width = innerWidth*dpr; canvas.height = innerHeight*dpr; ctx.scale(dpr,dpr);
+  cols = Math.ceil(innerWidth/CELL); rows = Math.ceil(innerHeight/CELL);
+  cells = [];
+  for (let y=0;y<rows;y++) for (let x=0;x<cols;x++){
+    const b = bandAt(x,y,0);
+    cells.push({ x,y,b, g: pick(b), a: 0.35+Math.random()*0.65 });
+  }
+  ctx.textBaseline = "middle"; ctx.textAlign = "center";
+}
+addEventListener("resize", build); build();
+
+function frame(){
+  t++;
+  ctx.fillStyle = "#000"; ctx.fillRect(0,0,innerWidth,innerHeight);
+  ctx.font = `${CELL-4}px monospace`;
+  for (const c of cells){
+    if (Math.random() < REROLL){ c.b = bandAt(c.x,c.y,t); c.g = pick(c.b); c.a = 0.35+Math.random()*0.65; }
+    else c.a += (Math.random()-0.5)*0.04;                 // gentle twinkle
+    c.a = Math.max(0.18, Math.min(1, c.a));
+    ctx.globalAlpha = c.a; ctx.fillStyle = BANDS[c.b].color;
+    ctx.fillText(c.g, c.x*CELL + CELL/2, c.y*CELL + CELL/2);
+  }
+  ctx.globalAlpha = 1;
+}
+setInterval(frame, 1000/FPS);
+</script>
+</body>
+</html>

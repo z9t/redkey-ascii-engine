@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLMIA // ASCII Showcase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ── SVG NOISE FILTER (inline, no external deps) ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+:root {
+  --bg:       #06060a;
+  --surface:  #0c0c12;
+  --surf2:    #101018;
+  --border:   #181825;
+  --border2:  #252538;
+  --border3:  #30304a;
+  --text:     #bebed4;
+  --dim:      #555570;
+  --muted:    #2e2e42;
+  --c-cyan:   #5ce1ff;
+  --c-green:  #4dff91;
+  --c-yellow: #ffd84d;
+  --c-pink:   #ff4a9a;
+  --c-orange: #ff8c42;
+  --c-purple: #b87fff;
+  --c-red:    #ff4d4d;
+  --font-mono: 'IBM Plex Mono', 'Space Mono', 'Courier New', monospace;
+  --font-disp: 'Space Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+
+/* ── HEADER ── */
+.header {
+  position: relative;
+  padding: 48px 40px 40px;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--border2) 30%, var(--border2) 70%, transparent 100%);
+}
+.h-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.h-pre {
+  font-family: var(--font-mono);
+  font-size: clamp(5px, 0.78vw, 7.5px);
+  line-height: 1.08;
+  color: var(--c-cyan);
+  text-shadow: 0 0 35px rgba(92,225,255,0.4), 0 0 70px rgba(92,225,255,0.15);
+  letter-spacing: 0.04em;
+  white-space: pre;
+  text-align: left;
+  display: inline-block;
+}
+.h-sub {
+  font-family: var(--font-disp);
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+.h-badges { display: flex; gap: 8px; }
+.badge {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  padding: 3px 10px;
+  border: 1px solid var(--border3);
+  color: var(--dim);
+  text-transform: uppercase;
+  background: var(--surface);
+}
+.badge.dev   { border-color: rgba(92,225,255,0.4); color: var(--c-cyan); background: rgba(92,225,255,0.04); }
+.badge.live  { border-color: rgba(255,74,154,0.4); color: var(--c-pink); background: rgba(255,74,154,0.04); }
+.badge.pend  { border-color: rgba(255,216,77,0.3); color: var(--c-yellow); background: rgba(255,216,77,0.04); }
+
+/* ── NAV ── */
+.nav-bar {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+.nav-btn {
+  background: none;
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 11px 20px;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+.nav-btn:hover  { color: var(--text); background: var(--surf2); }
+.nav-btn.active { color: var(--c-cyan); background: var(--surf2); }
+
+/* ── GRID ── */
+.grid {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 40px 60px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  gap: 14px;
+}
+@media (max-width: 540px) {
+  .grid { grid-template-columns: 1fr; padding: 12px 16px; gap: 10px; }
+  .header { padding: 36px 20px 28px; }
+  .nav-bar { padding: 0 16px; }
+}
+
+/* ── PANEL ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  opacity: 0;
+  transform: translateY(12px);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+/* top accent line */
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 5%, var(--border2) 50%, transparent 95%);
+}
+/* inner texture — subtle grid lines */
+.panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(255,255,255,0.012) 23px, rgba(255,255,255,0.012) 24px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.012) 39px, rgba(255,255,255,0.012) 40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* scanline on specific panels */
+.panel.scanlines .panel-body { position: relative; }
+.panel.scanlines .panel-body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+  animation: scanroll 8s linear infinite;
+}
+@keyframes scanroll { 0% { background-position: 0 0; } 100% { background-position: 0 80px; } }
+
+.panel-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.25);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+.dots { display: flex; gap: 5px; }
+.dot  { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.dot-r { background: #ff5f57; }
+.dot-y { background: #febc2e; }
+.dot-g { background: #28c840; }
+
+.panel-body {
+  position: relative;
+  z-index: 1;
+  padding: 16px;
+}
+
+/* ── LOGO PANEL ── */
+.logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 24px 12px 20px;
+}
+.logo-wrap pre {
+  font-family: var(--font-mono);
+  font-size: clamp(5px, 0.76vw, 7.5px);
+  line-height: 1.08;
+  color: var(--c-cyan);
+  text-shadow: 0 0 30px rgba(92,225,255,0.4);
+  white-space: pre;
+  text-align: left;
+  display: inline-block;
+  letter-spacing: 0.04em;
+}
+.logo-meta {
+  display: flex;
+  gap: 14px;
+  font-family: var(--font-disp);
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.1em;
+}
+.logo-meta em {
+  font-style: normal;
+  color: var(--c-yellow);
+}
+
+/* ── AI GRID ── */
+.ai-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 6px;
+}
+.ai-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 10px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ai-item::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border2), transparent);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.ai-item:hover { border-color: var(--border3); background: var(--surf2); }
+.ai-item:hover::before { opacity: 1; }
+
+.ai-item pre {
+  font-family: var(--font-mono);
+  font-size: clamp(5.5px, 0.65vw, 7px);
+  line-height: 1.15;
+  white-space: pre;
+  text-align: left;
+  display: inline-block;
+  color: var(--text);
+  opacity: 0.9;
+}
+.ai-item .lbl {
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+/* logo color classes */
+.lg-openai    { color: #4dff91; text-shadow: 0 0 12px rgba(77,255,145,0.3); }
+.lg-anthropic { color: #ff8c42; text-shadow: 0 0 12px rgba(255,140,66,0.3); }
+.lg-deepseek  { color: #5ce1ff; text-shadow: 0 0 12px rgba(92,225,255,0.3); }
+.lg-google    { color: #5ce1ff; text-shadow: 0 0 12px rgba(92,225,255,0.3); }
+.lg-meta      { color: #b87fff; text-shadow: 0 0 12px rgba(184,127,255,0.3); }
+.lg-mistral   { color: #ffd84d; text-shadow: 0 0 12px rgba(255,216,77,0.3); }
+.lg-xai       { color: #bebed4; text-shadow: 0 0 12px rgba(190,190,212,0.2); }
+.lg-minimax   { color: #5ce1ff; text-shadow: 0 0 12px rgba(92,225,255,0.3); }
+.lg-moonshot  { color: #b87fff; text-shadow: 0 0 12px rgba(184,127,255,0.3); }
+.lg-llmia     { color: #5ce1ff; text-shadow: 0 0 12px rgba(92,225,255,0.3); }
+
+/* ── RADAR ── */
+.radar-wrap { display: flex; flex-direction: column; gap: 5px; }
+.radar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.radar-row:last-child { border-bottom: none; }
+.radar-row:hover { background: rgba(255,255,255,0.02); }
+.rname {
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rbars { display: flex; gap: 3px; align-items: flex-end; height: 30px; }
+.rbar {
+  flex: 1;
+  height: 30px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.rbar-fill {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 0;
+  transition: none;
+}
+.rbar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: rgba(255,255,255,0.25);
+}
+.rbar-label {
+  position: absolute;
+  top: 3px; left: 0; right: 0;
+  font-size: 7px;
+  text-align: center;
+  color: rgba(6,6,10,0.8);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  z-index: 1;
+}
+
+/* axis labels row */
+.axis-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 10px;
+  padding: 3px 6px 0;
+}
+.axis-lbls {
+  display: flex;
+  gap: 3px;
+  font-size: 7px;
+  color: var(--dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.axis-lbls span { flex: 1; text-align: center; }
+
+/* ── MATCH ── */
+.match-arena {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 8px 0;
+}
+.match-m {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.match-ml {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.match-name {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.match-co {
+  font-size: 8px;
+  color: var(--dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.match-status {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dim);
+  min-height: 12px;
+}
+.match-bar-wrap {
+  height: 5px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.match-bar {
+  height: 100%;
+  width: 0%;
+}
+.match-vs {
+  font-family: var(--font-disp);
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  padding: 0 4px;
+}
+.match-footer {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 8px;
+  color: var(--dim);
+  letter-spacing: 0.12em;
+}
+.blink-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--c-red);
+}
+.blink-live::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--c-red);
+  box-shadow: 0 0 6px var(--c-red);
+  animation: livepulse 1.2s ease-in-out infinite;
+}
+@keyframes livepulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.8)} }
+
+/* ── LEADERBOARD ── */
+.lb-table { display: flex; flex-direction: column; gap: 1px; }
+.lb-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto 52px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: var(--bg);
+  border: 1px solid transparent;
+  transition: border-color 0.1s;
+  font-size: 10px;
+}
+.lb-row:hover { border-color: var(--border3); background: var(--surf2); }
+.lb-rank {
+  font-size: 9px;
+  color: var(--dim);
+  font-weight: 700;
+}
+.lb-rank.gold   { color: #ffd84d; }
+.lb-rank.silver { color: #aaaacc; }
+.lb-rank.bronze { color: #ff8c42; }
+.lb-name { color: var(--text); }
+.lb-name .co { color: var(--dim); margin-left: 5px; font-size: 8px; }
+.lb-bars { display: flex; gap: 2px; height: 12px; }
+.lb-bar-track {
+  flex: 1;
+  background: var(--surf2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+}
+.lb-bar-fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+}
+.lb-score { font-size: 8px; letter-spacing: 0.08em; color: var(--c-yellow); text-align: right; }
+
+/* ── BENCH ── */
+.bench-list { display: flex; flex-direction: column; gap: 7px; }
+.bench-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+}
+.bench-lbl { font-size: 8px; letter-spacing: 0.12em; color: var(--dim); text-transform: uppercase; }
+.bench-track {
+  height: 7px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.bench-fill { height: 100%; width: 0%; }
+.bench-pct { font-size: 9px; color: var(--dim); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── CLI ── */
+.cli-win {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  font-size: 10.5px;
+  line-height: 1.75;
+  min-height: 130px;
+  position: relative;
+  overflow: hidden;
+}
+.cli-win::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border2), transparent);
+}
+.cli-line {
+  display: block;
+  opacity: 0;
+  transform: translateX(-3px);
+}
+.cl-cmd  { color: var(--c-cyan); }
+.cl-out  { color: var(--c-green); }
+.cl-err  { color: var(--c-red); }
+.cl-warn { color: var(--c-yellow); }
+.cl-dim  { color: var(--dim); }
+.cl-norm { color: var(--text); }
+.cl-cur {
+  display: inline-block;
+  width: 7px; height: 12px;
+  background: var(--c-green);
+  vertical-align: text-bottom;
+  animation: cur 0.9s step-end infinite;
+}
+@keyframes cur { 0%,100%{opacity:1} 50%{opacity:0} }
+.cli-ctrl { margin-top: 10px; display: flex; gap: 8px; }
+.cli-btn {
+  background: var(--surf2);
+  border: 1px solid var(--border3);
+  color: var(--dim);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.cli-btn:hover { border-color: var(--c-cyan); color: var(--c-cyan); }
+.cli-btn.play  { border-color: rgba(77,255,145,0.4); color: var(--c-green); }
+.cli-btn.play:hover { background: rgba(77,255,145,0.06); }
+
+/* ── MATRIX ── */
+.mtx-win {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  overflow: hidden;
+}
+#mtx-canvas {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.2;
+  color: rgba(77,255,145,0.55);
+  text-shadow: 0 0 8px rgba(77,255,145,0.25);
+  white-space: pre;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── FOOTER ── */
+.footer {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 40px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.footer a { color: var(--dim); text-decoration: none; transition: color 0.12s; }
+.footer a:hover { color: var(--c-cyan); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="h-inner">
+    <pre class="h-pre" id="logo-art"></pre>
+    <div class="h-sub">ASCII Art Showcase // AI Model Evaluation Infrastructure</div>
+    <div class="h-badges">
+      <span class="badge dev">llmia.dev</span>
+      <span class="badge live">llmia.live</span>
+      <span class="badge pend">Season 0 Pending</span>
+    </div>
+  </div>
+</div>
+
+<div class="nav-bar" id="nav"></div>
+
+<div class="grid" id="grid"></div>
+
+<div class="footer">
+  <a href="https://llmia.dev">llmia.dev</a>
+  <span>Evidence Room &nbsp;·&nbsp; Live Broadcast &nbsp;·&nbsp; League</span>
+  <a href="https://llmia.live">llmia.live</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const LLOGO = `
+██████╗ ██████╗ ███╗   ██╗████████╗██████╗ ██╗██████╗ ██╗██████╗ ██╗██╗  ██╗████████╗
+██╔══██╗██╔══██╗████╗  ██║╚══██╔══╝██╔══██╗██║██╔══██╗██║██╔══██╗██║██║ ██╔╝╚══██╔══╝
+██████╔╝██████╔╝██╔██╗ ██║   ██║   ██████╔╝██║██║  ██║██║██║  ██║██║█████╔╝    ██║
+██╔═══╝ ██╔══██╗██║╚██╗██║   ██║   ██╔══██╗██║██║  ██║██║██║  ██║██║██╔═██╗    ██║
+██║     ██║  ██║██║ ╚████║   ██║   ██║  ██║██║██████╔╝██║██████╔╝██║██║  ██╗   ██║
+╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═════╝ ╚═╝╚═════╝ ╚═╝╚═╝  ╚═╝   ╚═╝`.trim();
+
+// Company logos from figlet letter font — much more recognizable
+const COMPANY_LOGOS = [
+  { key: 'openai',   cls: 'lg-openai',   label: 'OpenAI',
+    art: `OOO  PPPP  EEEEE N   N   A   III \nO   O P   P E     NN  N  A A   I  \nO   O PPPP  EEEE  N N N AAAAA  I  \nO   O P     E     N  NN A   A  I  \n OOO  P     EEEEE N   N A   A III` },
+  { key: 'anthropic', cls: 'lg-anthropic', label: 'Anthropic',
+    art: `A   N   N TTTTT H   H RRRR   OOO  PPPP  III  CCC \n A A  NN  N   T   H   H R   R O   O P   P  I  C   C \nAAAAA N N N   T   HHHHH RRRR  O   O PPPP   I  C     \nA   A N  NN   T   H   H R  R  O   O P      I  C   C \nA   A N   N   T   H   H R   R  OOO  P     III  CCC ` },
+  { key: 'deepseek',  cls: 'lg-deepseek',  label: 'DeepSeek',
+    art: `DDDD  EEEEE EEEEE PPPP   SSSS  K   K \nD   D E     E     P   P S      K  K  \nD   D EEEE  EEEE  PPPP   SSS   KKK   \nD   D E     E     P         S  K  K  \nDDDD  EEEEE EEEEE P     SSSS  K   K ` },
+  { key: 'google',    cls: 'lg-google',    label: 'Google',
+    art: `GGG   OOO   OOO   GGG  L     EEEEE \nG     O   O O   O G     L     E     \nG GG  O   O O   O G GG  L     EEEE  \nG   G O   O O   O G   G L     E     \n GGG   OOO   OOO   GGG  LLLLL EEEEE` },
+  { key: 'meta',      cls: 'lg-meta',      label: 'Meta',
+    art: `M   M EEEEE TTTTT   A   \nMM MM E       T    A A  \nM M M EEEE    T   AAAAA \nM   M E       T   A   A \nM   M EEEEE   T   A   A` },
+  { key: 'mistral',   cls: 'lg-mistral',   label: 'Mistral',
+    art: `M   M III  SSSS  TTTTT RRRR    A   L\nMM MM  I  S       T   R   R  A A  L\nM M M  I   SSS    T   RRRR  AAAAA L\nM   M  I      S   T   R  R  A   A L\nM   M III SSSS    T   R   R A   A LL` },
+  { key: 'xai',       cls: 'lg-xai',       label: 'xAI',
+    art: `X   X   A   III \n X X   A A   I  \n  X   AAAAA   I  \n X X  A   A   I  \nX   X A   A  III` },
+  { key: 'minimax',   cls: 'lg-minimax',   label: 'MiniMax',
+    art: `MMM   M   M III  N   N III  M   M X   X\nM M   MM  M  I   NN  N  I   MM  M  X X\nM  M  M M M  I   N N N  I   M M M   X\nM   M M  MM  I   N  NN  I   M   M  X X\nM   M M   M III  N   N III  M   M X   X` },
+  { key: 'moonshot',  cls: 'lg-moonshot',  label: 'Moonshot',
+    art: `M   M OOO  N   N SSSS  H   H OOO  TTTTT\nMM MM O  O NN  N S     H   H O  O   T\nM M M O  O N N N SSS   HHHHH O  O   T\nM   M O  O N  NN     S H   H O  O   T\nM   M OOO  N   N SSSS  H   H OOO    T` },
+  { key: 'llmia',     cls: 'lg-llmia',     label: 'LLMIA',
+    art: `LLLL  M   M III  A   \n  L   MM  M  I   A A  \n  L   M M M  I   AAA  \n  L   M  MM  I   A A  \nLLLL  M   M III  A   ` },
+];
+
+const RADAR_MODELS = [
+  { name: 'MiniMax M2.7',  scores: [87,82,71,68,74], color: '#5ce1ff' },
+  { name: 'Claude Opus 4', scores: [95,91,89,92,88], color: '#b87fff' },
+  { name: 'DeepSeek R2',   scores: [88,94,78,81,85], color: '#ff8c42' },
+  { name: 'GPT-5 Ultra',   scores: [96,93,91,94,79], color: '#4dff91' },
+  { name: 'Grok 4',       scores: [84,79,83,77,90], color: '#ffd84d' },
+];
+const RADAR_LABELS = ['INT', 'COD', 'GPQA', 'HLE', 'T-B'];
+const BAR_COLORS   = ['#5ce1ff','#4dff91','#ffd84d','#ff4a9a','#ff8c42'];
+
+const LB = [
+  { rank: 1,  name: 'o4-mini',        co: 'OpenAI',   bars: [95,93,91,94,79],  t: 'gold'   },
+  { rank: 2,  name: 'Claude Opus 4',  co: 'Anthropic', bars: [92,91,89,92,88], t: 'gold'   },
+  { rank: 3,  name: 'Gemini 3 Ultra', co: 'Google',   bars: [90,88,87,86,84], t: 'silver' },
+  { rank: 4,  name: 'DeepSeek R2',    co: 'DeepSeek', bars: [88,94,78,81,85], t: 'silver' },
+  { rank: 5,  name: 'Grok 4',         co: 'xAI',      bars: [84,79,83,77,90], t: 'silver' },
+  { rank: 6,  name: 'MiniMax M2.7',   co: 'MiniMax',  bars: [87,82,71,68,74], t: 'bronze' },
+  { rank: 7,  name: 'Mistral Nemo',   co: 'Mistral',  bars: [76,74,72,70,68], t: 'bronze' },
+  { rank: 8,  name: 'Llama 4 Scout',  co: 'Meta',     bars: [78,76,74,72,70], t: ''       },
+  { rank: 9,  name: 'Qwen 3',         co: 'Alibaba',  bars: [80,78,76,74,72], t: ''       },
+  { rank: 10, name: 'Moonshot K2',    co: 'Moonshot', bars: [75,73,71,69,67], t: ''       },
+];
+
+const BENCH = [
+  { label: 'Intelligence Index', id: 'int',  v: 87, c: '#5ce1ff' },
+  { label: 'Coding Index',       id: 'cod',  v: 82, c: '#4dff91' },
+  { label: 'GPQA',               id: 'gpqa', v: 71, c: '#ffd84d' },
+  { label: "Human's Last Exam",  id: 'hle',  v: 68, c: '#ff4a9a' },
+  { label: 'TerminalBench',      id: 'tb',   v: 74, c: '#ff8c42' },
+];
+
+const CLI = [
+  { t: '$ llmia score --model minimax-m2 --track general',   c: 'cl-cmd' },
+  { t: '> Fetching model data from registry...',              c: 'cl-out' },
+  { t: '> Connecting to eval harness...',                      c: 'cl-out' },
+  { t: '> Running benchmark suite (5 benchmarks)...',          c: 'cl-out' },
+  { t: '  Intelligence Index   ███████████░░░░  87%',        c: 'cl-dim' },
+  { t: '  Coding Index         █████████░░░░░░░  82%',        c: 'cl-dim' },
+  { t: '  GPQA                 ███████░░░░░░░░░  71%',        c: 'cl-dim' },
+  { t: "  Human's Last Exam    ██████▓░░░░░░░░░  68%  ⚠ hard", c: 'cl-warn' },
+  { t: '  TerminalBench        ███████▓░░░░░░░░  74%',         c: 'cl-dim' },
+  { t: '> OVERALL SCORE: PENDING — Season 0 not started',       c: 'cl-err' },
+  { t: '> Submit at https://llmia.dev/submit',                  c: 'cl-dim' },
+];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+const grid = document.getElementById('grid');
+
+function panel(id, label, body, opts = {}) {
+  const p = document.createElement('div');
+  p.className = 'panel' + (opts.scanlines ? ' scanlines' : '');
+  p.id = 'p-' + id;
+  p.innerHTML = `
+    <div class="panel-label">
+      <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+      ${label}
+    </div>
+    <div class="panel-body">${body}</div>`;
+  grid.appendChild(p);
+  return p;
+}
+
+// ─── LOGO ────────────────────────────────────────────────────────────────────
+(function() {
+  const body = document.createElement('div');
+  body.className = 'logo-wrap';
+  const pre = document.createElement('pre');
+  pre.className = 'lg-llmia';
+  pre.textContent = LLOGO;
+  body.appendChild(pre);
+  const meta = document.createElement('div');
+  meta.className = 'logo-meta';
+  meta.innerHTML = `<em>SEASON 0</em> PENDING &nbsp;·&nbsp; 10 MODELS &nbsp;·&nbsp; 4 TRACKS &nbsp;·&nbsp; 5 BENCHMARKS`;
+  body.appendChild(meta);
+  const p = panel('logo', '// LLMIA // SEASON 0 <span style="color:var(--c-yellow);font-size:8px;letter-spacing:0.2em;">PENDING</span>', '');
+  p.querySelector('.panel-body').appendChild(body);
+})();
+
+// ─── AI GRID ─────────────────────────────────────────────────────────────────
+(function() {
+  const wrap = document.createElement('div');
+  wrap.className = 'ai-grid';
+  COMPANY_LOGOS.forEach(co => {
+    const item = document.createElement('div');
+    item.className = 'ai-item';
+    const pre = document.createElement('pre');
+    pre.className = co.cls;
+    pre.textContent = co.art;
+    const lbl = document.createElement('div');
+    lbl.className = 'lbl';
+    lbl.textContent = co.label;
+    item.appendChild(pre);
+    item.appendChild(lbl);
+    wrap.appendChild(item);
+  });
+  panel('ailogo', '// AI COMPANY LOGOS — figlet letter font', '', { scanlines: false });
+  document.getElementById('p-ailogo').querySelector('.panel-body').appendChild(wrap);
+})();
+
+// ─── RADAR ───────────────────────────────────────────────────────────────────
+(function() {
+  const wrap = document.createElement('div');
+  RADAR_MODELS.forEach((m, mi) => {
+    const row = document.createElement('div');
+    row.className = 'radar-row';
+    const nEl = document.createElement('div');
+    nEl.className = 'rname';
+    nEl.style.color = m.color;
+    nEl.textContent = m.name;
+    row.appendChild(nEl);
+    const bars = document.createElement('div');
+    bars.className = 'rbars';
+    m.scores.forEach((s, si) => {
+      const track = document.createElement('div');
+      track.className = 'rbar';
+      const fill = document.createElement('div');
+      fill.className = 'rbar-fill';
+      fill.id = `rbf-${mi}-${si}`;
+      fill.style.background = m.color + 'cc';
+      const lbl = document.createElement('span');
+      lbl.className = 'rbar-label';
+      lbl.textContent = s;
+      track.appendChild(fill);
+      track.appendChild(lbl);
+      bars.appendChild(track);
+    });
+    row.appendChild(bars);
+    wrap.appendChild(row);
+  });
+  // Axis label row
+  const arow = document.createElement('div');
+  arow.className = 'axis-row';
+  arow.innerHTML = '<div></div><div class="axis-lbls">' + RADAR_LABELS.map(l => `<span>${l}</span>`).join('') + '</div>';
+  wrap.appendChild(arow);
+  panel('radar', '// MODEL RADAR — INT COD GPQA HLE T-B  <span style="color:var(--c-yellow);font-size:8px;">ALL PENDING SEASON 0</span>', '', { scanlines: true });
+  document.getElementById('p-radar').querySelector('.panel-body').appendChild(wrap);
+})();
+
+// ─── MATCH ───────────────────────────────────────────────────────────────────
+(function() {
+  const arena = document.createElement('div');
+  arena.className = 'match-arena';
+  arena.innerHTML = `
+    <div class="match-m">
+      <div class="match-ml">
+        <span class="match-name" id="m1-name" style="color:#5ce1ff">MiniMax M2.7</span>
+        <span class="match-co">MiniMax</span>
+      </div>
+      <span class="match-status" id="m1-status">WAITING...</span>
+      <div class="match-bar-wrap"><div class="match-bar" id="m1-bar" style="background:linear-gradient(90deg,#5ce1ff,#5ce1ff55)"></div></div>
+    </div>
+    <div class="match-vs">VS</div>
+    <div class="match-m">
+      <div class="match-ml">
+        <span class="match-name" id="m2-name" style="color:#b87fff">Claude Opus 4</span>
+        <span class="match-co">Anthropic</span>
+      </div>
+      <span class="match-status" id="m2-status">CONNECTING...</span>
+      <div class="match-bar-wrap"><div class="match-bar" id="m2-bar" style="background:linear-gradient(90deg,#b87fff,#b87fff55)"></div></div>
+    </div>`;
+  const footer = document.createElement('div');
+  footer.className = 'match-footer';
+  footer.innerHTML = `
+    <span class="blink-live">LIVE</span>
+    <span>MATCH #0042 &nbsp;·&nbsp; SEASON 0 &nbsp;·&nbsp;</span>
+    <span id="m-viewers">0 VIEWERS</span>`;
+  panel('match', '// LIVE MATCH SIMULATION', '', { scanlines: true });
+  const pb = document.getElementById('p-match').querySelector('.panel-body');
+  pb.appendChild(arena);
+  pb.appendChild(footer);
+})();
+
+// ─── LEADERBOARD ──────────────────────────────────────────────────────────────
+(function() {
+  const tbl = document.createElement('div');
+  tbl.className = 'lb-table';
+  LB.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'lb-row';
+    const rankEl = document.createElement('span');
+    rankEl.className = 'lb-rank' + (m.t ? ' ' + m.t : '');
+    rankEl.textContent = '#' + m.rank;
+    const nameEl = document.createElement('span');
+    nameEl.className = 'lb-name';
+    nameEl.innerHTML = m.name + '<span class="co">' + m.co + '</span>';
+    const barsEl = document.createElement('div');
+    barsEl.className = 'lb-bars';
+    m.bars.forEach((w, i) => {
+      const trk = document.createElement('div');
+      trk.className = 'lb-bar-track';
+      const fill = document.createElement('div');
+      fill.className = 'lb-bar-fill';
+      fill.id = `lbf-${m.rank}-${i}`;
+      fill.style.background = BAR_COLORS[i];
+      trk.appendChild(fill);
+      barsEl.appendChild(trk);
+    });
+    const scoreEl = document.createElement('span');
+    scoreEl.className = 'lb-score';
+    scoreEl.textContent = 'PENDING';
+    row.appendChild(rankEl);
+    row.appendChild(nameEl);
+    row.appendChild(barsEl);
+    row.appendChild(scoreEl);
+    tbl.appendChild(row);
+  });
+  panel('lb', '// SEASON 0 LEADERBOARD — GENERAL INTELLIGENCE  <span style="color:var(--c-yellow);font-size:8px;">PENDING</span>', '', { scanlines: true });
+  document.getElementById('p-lb').querySelector('.panel-body').appendChild(tbl);
+})();
+
+// ─── BENCHMARK ────────────────────────────────────────────────────────────────
+(function() {
+  const list = document.createElement('div');
+  list.className = 'bench-list';
+  BENCH.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'bench-row';
+    row.innerHTML = `
+      <span class="bench-lbl">${m.label}</span>
+      <div class="bench-track"><div class="bench-fill" id="bf-${m.id}" style="background:${m.c}"></div></div>
+      <span class="bench-pct" id="bp-${m.id}">0%</span>`;
+    list.appendChild(row);
+  });
+  panel('bench', '// BENCHMARK PROGRESS — MiniMax M2.7  <span style="color:var(--dim);font-size:8px;">SEASON 0 PENDING</span>', '', { scanlines: false });
+  document.getElementById('p-bench').querySelector('.panel-body').appendChild(list);
+})();
+
+// ─── CLI ──────────────────────────────────────────────────────────────────────
+(function() {
+  const win = document.createElement('div');
+  win.className = 'cli-win';
+  CLI.forEach((l, i) => {
+    const sp = document.createElement('span');
+    sp.className = 'cli-line ' + l.c;
+    sp.id = 'cl-' + i;
+    sp.textContent = l.t;
+    win.appendChild(sp);
+    win.appendChild(document.createElement('br'));
+  });
+  const cur = document.createElement('span');
+  cur.className = 'cl-cur';
+  cur.id = 'cl-cur';
+  win.appendChild(cur);
+
+  const ctrl = document.createElement('div');
+  ctrl.className = 'cli-ctrl';
+  const playBtn = document.createElement('button');
+  playBtn.className = 'cli-btn play';
+  playBtn.id = 'cl-play';
+  playBtn.textContent = '▶ Play';
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'cli-btn';
+  resetBtn.id = 'cl-reset';
+  resetBtn.textContent = '↺ Reset';
+  ctrl.appendChild(playBtn);
+  ctrl.appendChild(resetBtn);
+
+  panel('cli', '// LLMIA CLI — Interactive Demo', '', { scanlines: false });
+  const pb = document.getElementById('p-cli').querySelector('.panel-body');
+  pb.appendChild(win);
+  pb.appendChild(ctrl);
+})();
+
+// ─── MATRIX ───────────────────────────────────────────────────────────────────
+(function() {
+  const win = document.createElement('div');
+  win.className = 'mtx-win';
+  const cvs = document.createElement('div');
+  cvs.id = 'mtx-canvas';
+  win.appendChild(cvs);
+  panel('matrix', '// MATRIX RAIN — cmatrix tribute', '', { scanlines: false });
+  document.getElementById('p-matrix').querySelector('.panel-body').appendChild(win);
+})();
+
+// ─── ANIMATIONS ──────────────────────────────────────────────────────────────
+
+// 1. Panel entrance
+anime({
+  targets: '.panel',
+  opacity: [0, 1],
+  translateY: [12, 0],
+  delay: anime.stagger(50, { start: 80 }),
+  duration: 460,
+  easing: 'easeOutCubic',
+  complete: () => {
+    // 2. Logo glow loop
+    anime({
+      targets: '#p-logo pre',
+      textShadow: [
+        { value: '0 0 30px rgba(92,225,255,0.4)', duration: 2000 },
+        { value: '0 0 55px rgba(92,225,255,0.65)', duration: 2000 },
+        { value: '0 0 30px rgba(92,225,255,0.4)', duration: 2000 },
+      ],
+      loop: true,
+      easing: 'easeInOutSine',
+    });
+    // 3. AI logo subtle fade cycle
+    anime({
+      targets: '.ai-item',
+      opacity: [1, 0.7, 1],
+      duration: 5500,
+      delay: anime.stagger(160),
+      loop: true,
+      easing: 'easeInOutSine',
+    });
+    // 4. Radar fills
+    setTimeout(radarAnim, 200);
+    // 5. Leaderboard fills
+    setTimeout(lbAnim, 350);
+    // 6. Benchmark fills
+    setTimeout(benchAnim, 500);
+  }
+});
+
+function radarAnim() {
+  RADAR_MODELS.forEach((m, mi) => {
+    m.scores.forEach((s, si) => {
+      const f = document.getElementById(`rbf-${mi}-${si}`);
+      if (!f) return;
+      f.style.height = (s/100*30) + 'px'; // fixed height inline, then width animates
+      anime({
+        targets: f,
+        width: ['0%', '100%'],
+        duration: 1100,
+        delay: mi * 90 + si * 35,
+        easing: 'easeOutCubic',
+      });
+    });
+  });
+}
+
+function lbAnim() {
+  LB.forEach((m, mi) => {
+    m.bars.forEach((w, bi) => {
+      const f = document.getElementById(`lbf-${m.rank}-${bi}`);
+      if (!f) return;
+      anime({
+        targets: f,
+        width: [0, w + '%'],
+        duration: 1000,
+        delay: mi * 60 + bi * 25,
+        easing: 'easeOutCubic',
+      });
+    });
+  });
+}
+
+function benchAnim() {
+  BENCH.forEach((m, i) => {
+    const fill = document.getElementById(`bf-${m.id}`);
+    const pct  = document.getElementById(`bp-${m.id}`);
+    if (!fill || !pct) return;
+    setTimeout(() => {
+      anime({
+        targets: fill,
+        width: m.v + '%',
+        duration: 1300,
+        easing: 'easeOutCubic',
+        begin: () => { fill.style.width = '0%'; },
+        update: (anim) => { pct.textContent = Math.round(anim.progress * m.v / 100) + '%'; },
+        complete: () => { pct.textContent = m.v + '%'; },
+      });
+    }, i * 180);
+  });
+}
+
+// ─── MATCH LOOP ───────────────────────────────────────────────────────────────
+(function() {
+  const stages = [
+    { p1: 5,  p2: 0,  s1: 'BENCHMARKING...',  s2: 'WAITING' },
+    { p1: 20, p2: 8,  s1: 'RUNNING INT...',    s2: 'CONNECTING' },
+    { p1: 40, p2: 25, s1: 'RUNNING GPQA...',   s2: 'RUNNING INT' },
+    { p1: 62, p2: 48, s1: 'RUNNING T-BENCH',   s2: 'RUNNING GPQA' },
+    { p1: 80, p2: 72, s1: 'FINALIZING...',     s2: 'RUNNING T-B' },
+    { p1: 95, p2: 90, s1: 'ALMOST DONE',       s2: 'FINALIZING' },
+    { p1: 100,p2: 100,s1: 'COMPLETE',           s2: 'COMPLETE' },
+  ];
+  let si = 0;
+  const iv = setInterval(() => {
+    if (si >= stages.length) { clearInterval(iv); return; }
+    const s = stages[si];
+    const b1 = document.getElementById('m1-bar');
+    const b2 = document.getElementById('m2-bar');
+    if (b1) b1.style.width = s.p1 + '%';
+    if (b2) b2.style.width = s.p2 + '%';
+    const s1 = document.getElementById('m1-status');
+    const s2 = document.getElementById('m2-status');
+    if (s1) { s1.textContent = s.s1; s1.style.color = '#5ce1ff'; }
+    if (s2) { s2.textContent = s.s2; s2.style.color = '#b87fff'; }
+    const vw = document.getElementById('m-viewers');
+    if (vw) vw.textContent = Math.floor(120 + Math.random() * 400) + ' VIEWERS';
+    si++;
+  }, 750);
+})();
+
+// ─── CLI TYPING ───────────────────────────────────────────────────────────────
+(function() {
+  let idx = 0, running = false, t = null;
+
+  function show(i) {
+    const el = document.getElementById('cl-' + i);
+    if (!el) return;
+    anime({ targets: el, opacity: [0,1], translateX: [-3,0], duration: 100, easing: 'easeOutCubic' });
+    const cur = document.getElementById('cl-cur');
+    if (cur) {
+      cur.style.marginLeft = (el.offsetWidth + 2) + 'px';
+      cur.style.display = 'inline-block';
+    }
+  }
+
+  function run() {
+    if (idx >= CLI.length) {
+      const cur = document.getElementById('cl-cur');
+      if (cur) cur.style.display = 'none';
+      return;
+    }
+    show(idx); idx++;
+    t = setTimeout(run, 320);
+  }
+
+  document.getElementById('cl-play').addEventListener('click', () => {
+    if (running) return;
+    running = true;
+    idx = 0;
+    document.querySelectorAll('.cli-line').forEach(e => { e.style.opacity = '0'; e.style.transform = 'translateX(-3px)'; });
+    const cur = document.getElementById('cl-cur');
+    if (cur) { cur.style.display = 'inline-block'; cur.style.animation = 'cur 0.9s step-end infinite'; }
+    run();
+  });
+
+  document.getElementById('cl-reset').addEventListener('click', () => {
+    clearTimeout(t); running = false; idx = 0;
+    document.querySelectorAll('.cli-line').forEach(e => { e.style.opacity = '0'; e.style.transform = 'translateX(-3px)'; });
+    const cur = document.getElementById('cl-cur');
+    if (cur) cur.style.display = 'none';
+  });
+})();
+
+// ─── MATRIX RAIN ─────────────────────────────────────────────────────────────
+(function() {
+  const cvs = document.getElementById('mtx-canvas');
+  if (!cvs) return;
+  const CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#%&*+/=?_|';
+  const COLS = 66;
+  let rows = Array.from({length: 16}, () =>
+    Array.from({length: COLS}, () => Math.random() < 0.2 ? CH[Math.floor(Math.random()*CH.length)] : ' ').join('')
+  );
+  function draw() {
+    rows.shift();
+    rows.push(Array.from({length: COLS}, () => Math.random() < 0.2 ? CH[Math.floor(Math.random()*CH.length)] : ' ').join(''));
+    cvs.textContent = rows.join('\n');
+  }
+  draw();
+  setInterval(draw, 160);
+})();
+
+// ─── NAV ─────────────────────────────────────────────────────────────────────
+const NAV_IDS   = ['logo','ailogo','radar','match','lb','bench','cli','matrix'];
+const NAV_LBLS  = ['LOGO','AI LOGOS','RADAR','MATCH','RANKINGS','BENCH','CLI','MATRIX'];
+const navEl = document.getElementById('nav');
+NAV_IDS.forEach((id, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'nav-btn';
+  btn.textContent = NAV_LBLS[i];
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const el = document.getElementById('p-' + id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  navEl.appendChild(btn);
+});
+
+// Inject logo into header
+document.getElementById('logo-art').textContent = LLOGO;
+
+}); // DOMContentLoaded
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+{
+  "seek": {
+    "color": "#2563EB",
+    "character": "Sherlock Holmes",
+    "country": "British",
+    "catchphrase": "Elementary.",
+    "group": "Primary"
+  },
+  "soop": {
+    "color": "#F87171",
+    "character": "Gandalf",
+    "country": "Middle-earth",
+    "catchphrase": "You shall not pass!",
+    "group": "Gatekeepers"
+  },
+  "knall": {
+    "color": "#DC2626",
+    "character": "Herman the German",
+    "country": "German",
+    "catchphrase": "Zis is approved. Or nein!",
+    "group": "Gatekeepers"
+  },
+  "builder": {
+    "color": "#0D9488",
+    "character": "Tony Stark",
+    "country": "American",
+    "catchphrase": "Let's build something.",
+    "group": "Build"
+  },
+  "architect": {
+    "color": "#5EEAD4",
+    "character": "Daedalus",
+    "country": "Greek",
+    "catchphrase": "Every labyrinth has an exit.",
+    "group": "Build"
+  },
+  "knowall": {
+    "color": "#7C3AED",
+    "character": "Professor X",
+    "country": "American/British",
+    "catchphrase": "I've been expecting you.",
+    "group": "Knowledge"
+  },
+  "know-skill": {
+    "color": "#A78BFA",
+    "character": "Yoda",
+    "country": "Dagobah",
+    "catchphrase": "Do or do not, there is no try.",
+    "group": "Knowledge"
+  },
+  "research": {
+    "color": "#C4B5FD",
+    "character": "Indiana Jones",
+    "country": "American",
+    "catchphrase": "It belongs in a museum!",
+    "group": "Knowledge"
+  },
+  "designer": {
+    "color": "#EC4899",
+    "character": "Edna Mode",
+    "country": "Fictional",
+    "catchphrase": "No capes!",
+    "group": "Design"
+  },
+  "animator": {
+    "color": "#F472B6",
+    "character": "Hayao Miyazaki",
+    "country": "Japanese",
+    "catchphrase": "The wind is rising.",
+    "group": "Design"
+  },
+  "swiftui": {
+    "color": "#FBCFE8",
+    "character": "Steve Jobs",
+    "country": "American",
+    "catchphrase": "One more thing.",
+    "group": "Design"
+  },
+  "qa-eval": {
+    "color": "#059669",
+    "character": "Judge Dredd",
+    "country": "Mega-City One",
+    "catchphrase": "I am the law.",
+    "group": "QA/Eval"
+  },
+  "agent-eval": {
+    "color": "#86EFAC",
+    "character": "The Oracle",
+    "country": "Fictional",
+    "catchphrase": "You've already made the choice.",
+    "group": "QA/Eval"
+  },
+  "dennis": {
+    "color": "#1E3A8A",
+    "character": "Atticus Finch",
+    "country": "American Southern",
+    "catchphrase": "You never really understand a person until...",
+    "group": "Legal"
+  },
+  "denuto": {
+    "color": "#60A5FA",
+    "character": "Elle Woods",
+    "country": "American",
+    "catchphrase": "What, like it's hard?",
+    "group": "Legal"
+  },
+  "scout": {
+    "color": "#D97706",
+    "character": "Aragorn",
+    "country": "Gondor",
+    "catchphrase": "I will find what is hidden.",
+    "group": "Infrastructure"
+  },
+  "browserqa": {
+    "color": "#2DD4BF",
+    "character": "Neo",
+    "country": "The Matrix",
+    "catchphrase": "There is no spoon.",
+    "group": "Infrastructure"
+  },
+  "macsec": {
+    "color": "#475569",
+    "character": "James Bond",
+    "country": "British",
+    "catchphrase": "Bond. James Bond.",
+    "group": "Infrastructure"
+  },
+  "perfeng": {
+    "color": "#A8A29E",
+    "character": "Scotty",
+    "country": "Scottish",
+    "catchphrase": "I'm giving her all she's got!",
+    "group": "Infrastructure"
+  }
+}
