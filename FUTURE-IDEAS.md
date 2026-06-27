@@ -89,3 +89,13 @@ Status: shipped as a basic in-canvas particle mode.
 - Add a richer particle engine with multiple attractors/repellers, cursor
   targeting, source-luminance targeting, and explicit respawn modes.
 - Add a local native bridge if NDI or Syphon input becomes required.
+
+## Transition generators (content-aware dissolves) — future implementations
+Full menu in `transitions/TRANSITION-GENERATORS.md` (~25 equations: Eikonal/Fast-Marching,
+Gray-Scott reaction-diffusion, weighted Voronoi, quadtree/BSP, Delaunay, watershed,
+graph min-cut, seam carving, spectral/normalized cut, Newton & escape-time fractals,
+DLA, curl-noise flow, optical flow, domain warp, phyllotaxis, blue-noise ordering,
+metaballs/SDF smooth-min, cellular automata) + the arrival-time-field / field-algebra
+framing for divide-split-and/or-intersect (AND=min, OR=max/smin, XOR=|F-G|).
+Delegated to `research` (msg_20260627_125917, claimed).
+**Started:** Eikonal / Fast-Marching content-aware front (transitions/eikonal-dissolve.html).
