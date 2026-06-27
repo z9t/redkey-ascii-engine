@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>RedKey Gray–Scott reaction–diffusion dissolve — content-aware prototype</title>
+<style>
+  html,body{margin:0;background:#111;display:grid;place-items:center;min-height:100vh}
+  canvas{width:min(96vw,96vh);height:min(96vw,96vh);background:#000}
+  #hud{position:fixed;top:8px;left:8px;font:11px/1.5 monospace;color:#b8aa98;white-space:pre;background:#0009;padding:6px 8px;border-radius:6px;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="c" width="900" height="900"></canvas>
+<div id="hud"></div>
+<script>
+// GRAY–SCOTT reaction–diffusion dissolve.
+//   ∂U/∂t = Du∇²U − U·V² + F(1−U)
+//   ∂V/∂t = Dv∇²V + U·V² − (F+k)V
+// Patterns from Pearson 1993 ("Complex Patterns in a Simple System"); (F,k) presets below.
+// Content-aware: V is seeded at the picture's salient features (edge maxima + the
+// dominant-region centroid, after Itti–Koch–Niebur 1998), so the pattern nucleates ON
+// the artwork. Arrival time = the step a cell's V first crosses threshold → reveal field.
+const Q=new URLSearchParams(location.search);
+const A_SRC=Q.get('a')||'s1-last.png', B_SRC=Q.get('b')||'s2-first.png';
+const DUR=+(Q.get('dur')||3.0);
+const G=+(Q.get('g')||100);
+const STEPS=+(Q.get('steps')||2600);
+const Du=+(Q.get('du')||0.16), Dv=+(Q.get('dv')||0.08), DT=+(Q.get('dt')||1.0);
+const PRESETS={coral:[0.0545,0.0620],worms:[0.0540,0.0630],mitosis:[0.0367,0.0649],
+               spots:[0.0300,0.0620],maze:[0.0290,0.0570],holes:[0.0390,0.0580]};
+const PRE=PRESETS[Q.get('preset')||'coral']||PRESETS.coral;
+const F=Q.has('f')?+Q.get('f'):PRE[0], K=Q.has('k')?+Q.get('k'):PRE[1];
+const NSEED=+(Q.get('seeds')||7);
+const VTHRESH=+(Q.get('vthresh')||0.18);
+const RDMIX=+(Q.get('rdmix')||0.5); // 0=pure spreading front .. 1=pure RD arrival
+const BAND=+(Q.get('band')||0.14), FEATHER=+(Q.get('feather')||0.05);
+const GLYPHFRONT=Q.get('glyphfront')!=='0';
+const STATIC=Q.has('p')?+Q.get('p'):null;
+const SIZE=900, SCL=SIZE/G, RED='#dc2626', TAN='#b8aa98', WHITE='#fafafa';
+const GLYPHS=('ABCDEFGHJKLMNPQRSTUVWXYZ0123456789@#%&$*+=/<>?¥£§アイウエオカキクabcdefghkmnpqrstuvwxyz∆∇∂∫≈≠≡⌘⎔░▒▓█╳╱╲┃━╋ΩΨΦΣΞΛ').split('');
+const c=document.getElementById('c'), x=c.getContext('2d'), hud=document.getElementById('hud');
+const N=G*G;
+
+function loadImg(s){return new Promise((r,j)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>r(i);i.onerror=j;i.src=s;});}
+function hash(a,b){let h=(a*374761393+b*668265263)^0x5bd1e995;h=(h^(h>>>13))*1274126177;return((h^(h>>>16))>>>0)/4294967295;}
+
+(async function(){
+  const [A,B]=await Promise.all([loadImg(A_SRC),loadImg(B_SRC)]);
+  const oA=document.createElement('canvas');oA.width=oA.height=SIZE;oA.getContext('2d').drawImage(A,0,0,SIZE,SIZE);
+  const oB=document.createElement('canvas');oB.width=oB.height=SIZE;oB.getContext('2d').drawImage(B,0,0,SIZE,SIZE);
+  const sa=document.createElement('canvas');sa.width=sa.height=G;const sc=sa.getContext('2d');sc.drawImage(A,0,0,G,G);
+  const ad=sc.getImageData(0,0,G,G).data, lum=new Float32Array(N);
+  let hist=new Array(16).fill(0);
+  for(let i=0;i<N;i++){const L=(0.2126*ad[i*4]+0.7152*ad[i*4+1]+0.0722*ad[i*4+2])/255;lum[i]=L;hist[Math.min(15,(L*16)|0)]++;}
+  const edge=new Float32Array(N);
+  for(let y=1;y<G-1;y++)for(let xx=1;xx<G-1;xx++){const i=y*G+xx;edge[i]=Math.min(1,(Math.abs(lum[i]-lum[i-1])+Math.abs(lum[i]-lum[i+1])+Math.abs(lum[i]-lum[i-G])+Math.abs(lum[i]-lum[i+G]))*2);}
+  let mode=0;for(let i=1;i<16;i++)if(hist[i]>hist[mode])mode=i;const modeL=(mode+0.5)/16;
+  // content-aware seeds: dominant-region centroid + the strongest edge cells (saliency-lite)
+  let cx=0,cy=0,cn=0;for(let i=0;i<N;i++)if(Math.abs(lum[i]-modeL)<0.12){cx+=i%G;cy+=(i/G)|0;cn++;}
+  const seeds=[[Math.round(cn?cx/cn:G/2),Math.round(cn?cy/cn:G/2)]];
+  const ranked=[];for(let i=0;i<N;i++)ranked.push([edge[i]+0.0001*hash(i,1),i]);
+  ranked.sort((a,b)=>b[0]-a[0]);
+  for(let r=0,placed=0;r<ranked.length&&placed<NSEED-1;r+=Math.max(1,(N/400)|0)){const i=ranked[r][1];seeds.push([i%G,(i/G)|0]);placed++;}
+
+  // ---------- reaction–diffusion (toroidal) ----------
+  const U=new Float32Array(N).fill(1), V=new Float32Array(N).fill(0);
+  const Un=new Float32Array(N), Vn=new Float32Array(N);
+  const SR=Math.max(2,(G*0.035)|0);
+  for(const[sxx,syy]of seeds)for(let dy=-SR;dy<=SR;dy++)for(let dx=-SR;dx<=SR;dx++){
+    if(dx*dx+dy*dy>SR*SR)continue;const gx=(sxx+dx+G)%G,gy=(syy+dy+G)%G,i=gy*G+gx;
+    U[i]=0.5;V[i]=0.25+0.05*(hash(gx,gy)-0.5);}
+  const arr=new Int32Array(N).fill(-1);
+  function lap(arrF,i,gx,gy){const xm=(gx-1+G)%G,xp=(gx+1)%G,ym=(gy-1+G)%G,yp=(gy+1)%G;
+    const c0=arrF[i];
+    const o=arrF[gy*G+xm]+arrF[gy*G+xp]+arrF[ym*G+gx]+arrF[yp*G+gx];
+    const d=arrF[ym*G+xm]+arrF[ym*G+xp]+arrF[yp*G+xm]+arrF[yp*G+xp];
+    return 0.2*o+0.05*d-c0;}
+  for(let s=0;s<STEPS;s++){
+    for(let gy=0;gy<G;gy++)for(let gx=0;gx<G;gx++){const i=gy*G+gx;
+      const u=U[i],v=V[i],uvv=u*v*v;
+      Un[i]=u+(Du*lap(U,i,gx,gy)-uvv+F*(1-u))*DT;
+      Vn[i]=v+(Dv*lap(V,i,gx,gy)+uvv-(F+K)*v)*DT;}
+    U.set(Un);V.set(Vn);
+    if((s&3)===0)for(let i=0;i<N;i++)if(arr[i]<0&&Vn[i]>VTHRESH)arr[i]=s;
+  }
+  // reveal field = a multi-source spreading front (distance to nearest content-seed)
+  // textured/accelerated by the RD arrival, so the dissolve paces evenly while the coral
+  // tendrils eat ahead. Unreached cells ride the spreading front (clean full reveal).
+  let maxA=1;for(let i=0;i<N;i++)if(arr[i]>maxA)maxA=arr[i];
+  const dist=new Float32Array(N);let maxD=1;
+  for(let gy=0;gy<G;gy++)for(let gx=0;gx<G;gx++){let dm=1e9;for(const[sxx,syy]of seeds){const dx=gx-sxx,dy=gy-syy;const d=dx*dx+dy*dy;if(d<dm)dm=d;}dm=Math.sqrt(dm);dist[gy*G+gx]=dm;if(dm>maxD)maxD=dm;}
+  const T=new Float32Array(N);
+  for(let i=0;i<N;i++){const base=dist[i]/maxD;const rd=arr[i]>=0?(arr[i]/maxA):1.0;
+    let t=(1-RDMIX)*base+RDMIX*rd;T[i]=t<0?0:t>1?1:t;}
+
+  const gch=new Array(N),gcol=new Array(N);
+  for(let i=0;i<N;i++){gch[i]=GLYPHS[(hash(i,11)*GLYPHS.length)|0];const L=lum[i];gcol[i]=L<0.33?RED:(L<0.7?TAN:WHITE);}
+  const msmall=document.createElement('canvas');msmall.width=msmall.height=G;const mctx=msmall.getContext('2d');
+  const idata=mctx.createImageData(G,G);
+  const layer=document.createElement('canvas');layer.width=layer.height=SIZE;const lctx=layer.getContext('2d');
+  x.textAlign='center';x.textBaseline='middle';
+  console.log('[grayscott]',{grid:G,steps:STEPS,F:F,k:K,preset:Q.get('preset')||'coral',seeds:seeds.length,reached:arr.filter(a=>a>=0).length});
+
+  function frame(p){
+    x.clearRect(0,0,SIZE,SIZE);x.drawImage(oB,0,0);
+    const d=idata.data;
+    for(let i=0;i<N;i++){let a=(T[i]-p)/FEATHER+0.5;a=a<0?0:a>1?1:a;d[i*4]=255;d[i*4+1]=255;d[i*4+2]=255;d[i*4+3]=(a*255)|0;}
+    mctx.putImageData(idata,0,0);
+    lctx.clearRect(0,0,SIZE,SIZE);lctx.imageSmoothingEnabled=true;
+    lctx.globalCompositeOperation='source-over';lctx.drawImage(oA,0,0);
+    lctx.globalCompositeOperation='destination-in';lctx.drawImage(msmall,0,0,SIZE,SIZE);
+    x.drawImage(layer,0,0);
+    if(GLYPHFRONT){for(let i=0;i<N;i++){const ph=(p-(T[i]-BAND))/BAND;if(ph<=0||ph>1.5)continue;
+      const bell=Math.sin(Math.min(1,ph)*Math.PI);if(bell<0.06)continue;
+      const gx=i%G,gy=(i/G)|0;const jx=(hash(i,3)-0.5)*SCL*0.6,jy=(hash(i,5)-0.5)*SCL*0.6;
+      const sz=SCL*(0.7+1.3*Math.min(1,ph));x.globalAlpha=bell;x.fillStyle=gcol[i];x.font=`${sz|0}px monospace`;
+      x.fillText(gch[i],gx*SCL+SCL/2+jx,gy*SCL+SCL/2+jy);}x.globalAlpha=1;}
+    hud.textContent=`p ${p.toFixed(2)}  GRAY-SCOTT  ${Q.get('preset')||'coral'}  F ${F} k ${K}\ngrid ${G}  steps ${STEPS}  seeds ${seeds.length}  glyph-front ${GLYPHFRONT?'on':'off'}`;
+  }
+  if(STATIC!==null){frame(STATIC);return;}
+  let st=null;function loop(ts){if(st===null)st=ts;const p=((ts-st)/1000/DUR)%1.2;frame(Math.min(1,p));requestAnimationFrame(loop);}requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

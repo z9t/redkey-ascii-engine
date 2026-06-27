@@ -72,3 +72,18 @@ For **each** generator: (a) canonical paper/reference + the governing equation;
 (e) prior art in generative art / VJ / motion design; (f) the cleanest reference
 implementation to port. Deliver as a corpus alongside the earlier motion-design/CV
 transition corpus.
+
+## Research corpus (delivered 2026-06-27 by `research`)
+46 sources (26 full PDFs) at `/Users/max/know/research/motion-design-cv-2026-06-27/`
+(`references.md` + `coverage-report.md`). Per-generator anchors:
+- **Eikonal / FMM** — Sethian 1996 (fast marching), Osher–Sethian 1988 (level sets).
+- **Gray–Scott RD** — Pearson 1993 (F,k pattern catalogue), Turing 1952, Meinhardt 1982.
+- **DBM / DLA** — Niemeyer 1984, Witten–Sander 1981.
+- **Content steering** — Itti–Koch–Niebur 1998 (saliency), Canny 1986, Sobel 1968,
+  Sapiro (structure tensor), Felzenszwalb–Huttenlocher 2012 (distance transform).
+- **Branching toward content** — Runions 2005/2007 (space colonization), Prusinkiewicz–Lindenmayer (ABOP / L-systems).
+- **Flow / warp** — Bridson 2007 (curl-noise), iq domain-warping.
+- **Noise** — Perlin 1985/2002, Gustavson 2005 (simplex).
+- **Ordering / dither** — Bayer 1973, Floyd–Steinberg 1976, Xu–Kaplan 2007 (artistic thresholding).
+- **Matte algebra** — Porter–Duff 1984, W3C compositing/blending, Smith–Blinn.
+- **Timing / easing** — CSS Easing L2, Lasseter 1987, Disney 12 principles.
