@@ -30,9 +30,10 @@ const PRESETS={coral:[0.0545,0.0620],worms:[0.0540,0.0630],mitosis:[0.0367,0.064
                spots:[0.0300,0.0620],maze:[0.0290,0.0570],holes:[0.0390,0.0580]};
 const PRE=PRESETS[Q.get('preset')||'coral']||PRESETS.coral;
 const F=Q.has('f')?+Q.get('f'):PRE[0], K=Q.has('k')?+Q.get('k'):PRE[1];
-const NSEED=+(Q.get('seeds')||7);
+const CTHRESH=+(Q.get('cthresh')||0.28); // seed V along cells whose content exceeds this
+const ORGWARP=+(Q.get('orgwarp')||0.16); // fractal warp to break grid/Manhattan blockiness
 const VTHRESH=+(Q.get('vthresh')||0.18);
-const RDMIX=+(Q.get('rdmix')||0.5); // 0=pure spreading front .. 1=pure RD arrival
+const RDMIX=+(Q.get('rdmix')||0.62); // 0=pure spreading front .. 1=pure RD arrival
 const BAND=+(Q.get('band')||0.14), FEATHER=+(Q.get('feather')||0.05);
 const GLYPHFRONT=Q.get('glyphfront')!=='0';
 const STATIC=Q.has('p')?+Q.get('p'):null;
@@ -43,6 +44,7 @@ const N=G*G;
 
 function loadImg(s){return new Promise((r,j)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>r(i);i.onerror=j;i.src=s;});}
 function hash(a,b){let h=(a*374761393+b*668265263)^0x5bd1e995;h=(h^(h>>>13))*1274126177;return((h^(h>>>16))>>>0)/4294967295;}
+function fnoise(fx,fy){const f=(px,py)=>{const x0=Math.floor(px),y0=Math.floor(py),tx=px-x0,ty=py-y0,a=hash(x0,y0),b=hash(x0+1,y0),cc=hash(x0,y0+1),d=hash(x0+1,y0+1),sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty);return (a*(1-sx)+b*sx)*(1-sy)+(cc*(1-sx)+d*sx)*sy;};return 0.6*f(fx,fy)+0.4*f(fx*2.3+5,fy*2.3+9);}
 
 (async function(){
   const [A,B]=await Promise.all([loadImg(A_SRC),loadImg(B_SRC)]);
@@ -55,20 +57,23 @@ function hash(a,b){let h=(a*374761393+b*668265263)^0x5bd1e995;h=(h^(h>>>13))*127
   const edge=new Float32Array(N);
   for(let y=1;y<G-1;y++)for(let xx=1;xx<G-1;xx++){const i=y*G+xx;edge[i]=Math.min(1,(Math.abs(lum[i]-lum[i-1])+Math.abs(lum[i]-lum[i+1])+Math.abs(lum[i]-lum[i-G])+Math.abs(lum[i]-lum[i+G]))*2);}
   let mode=0;for(let i=1;i<16;i++)if(hist[i]>hist[mode])mode=i;const modeL=(mode+0.5)/16;
-  // content-aware seeds: dominant-region centroid + the strongest edge cells (saliency-lite)
-  let cx=0,cy=0,cn=0;for(let i=0;i<N;i++)if(Math.abs(lum[i]-modeL)<0.12){cx+=i%G;cy+=(i/G)|0;cn++;}
-  const seeds=[[Math.round(cn?cx/cn:G/2),Math.round(cn?cy/cn:G/2)]];
-  const ranked=[];for(let i=0;i<N;i++)ranked.push([edge[i]+0.0001*hash(i,1),i]);
-  ranked.sort((a,b)=>b[0]-a[0]);
-  for(let r=0,placed=0;r<ranked.length&&placed<NSEED-1;r+=Math.max(1,(N/400)|0)){const i=ranked[r][1];seeds.push([i%G,(i/G)|0]);placed++;}
+  // content map: high on edges + on the subject (cells far from the background luminance mode)
+  const content=new Float32Array(N);
+  for(let i=0;i<N;i++)content[i]=Math.min(1,Math.max(edge[i]*1.6,Math.abs(lum[i]-modeL)*2.0));
+  // seed V densely ALONG the content (text strokes / edges / subject), dilated 1 cell, so the
+  // reaction nucleates ON the artwork and grows outward — the dissolve forms from the content.
+  const isSeed=new Uint8Array(N);
+  for(let i=0;i<N;i++)if(content[i]>CTHRESH)isSeed[i]=1;
+  let sc0=0;for(let i=0;i<N;i++)sc0+=isSeed[i];
+  if(sc0<8){let cx=0,cy=0,cn=0;for(let i=0;i<N;i++)if(Math.abs(lum[i]-modeL)<0.12){cx+=i%G;cy+=(i/G)|0;cn++;}isSeed[Math.round(cn?cy/cn:G/2)*G+Math.round(cn?cx/cn:G/2)]=1;}
+  const seed2=isSeed.slice();
+  for(let gy=0;gy<G;gy++)for(let gx=0;gx<G;gx++){if(!isSeed[gy*G+gx])continue;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)seed2[((gy+dy+G)%G)*G+((gx+dx+G)%G)]=1;}
+  let nSeed=0;for(let i=0;i<N;i++)nSeed+=seed2[i];
 
   // ---------- reaction–diffusion (toroidal) ----------
   const U=new Float32Array(N).fill(1), V=new Float32Array(N).fill(0);
   const Un=new Float32Array(N), Vn=new Float32Array(N);
-  const SR=Math.max(2,(G*0.035)|0);
-  for(const[sxx,syy]of seeds)for(let dy=-SR;dy<=SR;dy++)for(let dx=-SR;dx<=SR;dx++){
-    if(dx*dx+dy*dy>SR*SR)continue;const gx=(sxx+dx+G)%G,gy=(syy+dy+G)%G,i=gy*G+gx;
-    U[i]=0.5;V[i]=0.25+0.05*(hash(gx,gy)-0.5);}
+  for(let i=0;i<N;i++)if(seed2[i]){U[i]=0.4;V[i]=0.5+0.06*(hash(i,9)-0.5);}
   const arr=new Int32Array(N).fill(-1);
   function lap(arrF,i,gx,gy){const xm=(gx-1+G)%G,xp=(gx+1)%G,ym=(gy-1+G)%G,yp=(gy+1)%G;
     const c0=arrF[i];
@@ -87,11 +92,15 @@ function hash(a,b){let h=(a*374761393+b*668265263)^0x5bd1e995;h=(h^(h>>>13))*127
   // textured/accelerated by the RD arrival, so the dissolve paces evenly while the coral
   // tendrils eat ahead. Unreached cells ride the spreading front (clean full reveal).
   let maxA=1;for(let i=0;i<N;i++)if(arr[i]>maxA)maxA=arr[i];
-  const dist=new Float32Array(N);let maxD=1;
-  for(let gy=0;gy<G;gy++)for(let gx=0;gx<G;gx++){let dm=1e9;for(const[sxx,syy]of seeds){const dx=gx-sxx,dy=gy-syy;const d=dx*dx+dy*dy;if(d<dm)dm=d;}dm=Math.sqrt(dm);dist[gy*G+gx]=dm;if(dm>maxD)maxD=dm;}
+  // distance FROM the content (multi-source BFS) so background far from the artwork trails last
+  const dist=new Float32Array(N).fill(1e9);const q=new Int32Array(N);let qh=0,qt=0,maxD=1;
+  for(let i=0;i<N;i++)if(seed2[i]){dist[i]=0;q[qt++]=i;}
+  while(qh<qt){const i=q[qh++],gx=i%G,gy=(i/G)|0,nd=dist[i]+1;
+    const nb=[gy*G+((gx+1)%G),gy*G+((gx-1+G)%G),((gy+1)%G)*G+gx,((gy-1+G)%G)*G+gx];
+    for(const j of nb)if(nd<dist[j]){dist[j]=nd;if(nd>maxD)maxD=nd;q[qt++]=j;}}
   const T=new Float32Array(N);
-  for(let i=0;i<N;i++){const base=dist[i]/maxD;const rd=arr[i]>=0?(arr[i]/maxA):1.0;
-    let t=(1-RDMIX)*base+RDMIX*rd;T[i]=t<0?0:t>1?1:t;}
+  for(let i=0;i<N;i++){const gx=i%G,gy=(i/G)|0;const base=Math.min(1,dist[i]/maxD);const rd=arr[i]>=0?(arr[i]/maxA):1.0;
+    let t=(1-RDMIX)*base+RDMIX*rd + (fnoise(gx*0.12,gy*0.12)-0.5)*ORGWARP;T[i]=t<0?0:t>1?1:t;}
 
   const gch=new Array(N),gcol=new Array(N);
   for(let i=0;i<N;i++){gch[i]=GLYPHS[(hash(i,11)*GLYPHS.length)|0];const L=lum[i];gcol[i]=L<0.33?RED:(L<0.7?TAN:WHITE);}
@@ -99,7 +108,7 @@ function hash(a,b){let h=(a*374761393+b*668265263)^0x5bd1e995;h=(h^(h>>>13))*127
   const idata=mctx.createImageData(G,G);
   const layer=document.createElement('canvas');layer.width=layer.height=SIZE;const lctx=layer.getContext('2d');
   x.textAlign='center';x.textBaseline='middle';
-  console.log('[grayscott]',{grid:G,steps:STEPS,F:F,k:K,preset:Q.get('preset')||'coral',seeds:seeds.length,reached:arr.filter(a=>a>=0).length});
+  console.log('[grayscott]',{grid:G,steps:STEPS,F:F,k:K,preset:Q.get('preset')||'coral',contentSeeds:nSeed,reached:arr.reduce((a,v)=>a+(v>=0?1:0),0)});
 
   function frame(p){
     x.clearRect(0,0,SIZE,SIZE);x.drawImage(oB,0,0);
@@ -115,7 +124,7 @@ function hash(a,b){let h=(a*374761393+b*668265263)^0x5bd1e995;h=(h^(h>>>13))*127
       const gx=i%G,gy=(i/G)|0;const jx=(hash(i,3)-0.5)*SCL*0.6,jy=(hash(i,5)-0.5)*SCL*0.6;
       const sz=SCL*(0.7+1.3*Math.min(1,ph));x.globalAlpha=bell;x.fillStyle=gcol[i];x.font=`${sz|0}px monospace`;
       x.fillText(gch[i],gx*SCL+SCL/2+jx,gy*SCL+SCL/2+jy);}x.globalAlpha=1;}
-    hud.textContent=`p ${p.toFixed(2)}  GRAY-SCOTT  ${Q.get('preset')||'coral'}  F ${F} k ${K}\ngrid ${G}  steps ${STEPS}  seeds ${seeds.length}  glyph-front ${GLYPHFRONT?'on':'off'}`;
+    hud.textContent=`p ${p.toFixed(2)}  GRAY-SCOTT  ${Q.get('preset')||'coral'}  F ${F} k ${K}\ngrid ${G}  steps ${STEPS}  content-seeds ${nSeed}  glyph-front ${GLYPHFRONT?'on':'off'}`;
   }
   if(STATIC!==null){frame(STATIC);return;}
   let st=null;function loop(ts){if(st===null)st=ts;const p=((ts-st)/1000/DUR)%1.2;frame(Math.min(1,p));requestAnimationFrame(loop);}requestAnimationFrame(loop);
