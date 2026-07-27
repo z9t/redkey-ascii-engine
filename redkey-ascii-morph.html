@@ -42,9 +42,9 @@
   <h1>RedKey ASCII · engine</h1>
   <div style="display:flex;gap:4%;margin-bottom:8px"><canvas id="prevA" width="160" height="54" title="layer A"></canvas><canvas id="prevB" width="160" height="54" title="layer B"></canvas></div>
   <div class="src"><span style="color:#b8aa98">layer</span><button type="button" id="la" class="on">A</button><button type="button" id="lb">B</button>
-    <select id="ntype" title="noise type"><option value="fbm">fbm</option><option value="warp">warp</option><option value="ridged">ridged</option><option value="cellular">cellular</option><option value="waves">waves</option><option value="static">static</option></select>
+    <select id="ntype" title="noise type"><option value="off">off</option><option value="fbm">fbm</option><option value="warp">warp</option><option value="ridged">ridged</option><option value="cellular">cellular</option><option value="waves">waves</option><option value="static">static</option></select>
     <select id="fitmode" title="media scale"><option value="fit">fit</option><option value="fill">fill</option><option value="stretch">stretch</option><option value="manual">manual</option></select>
-    <button type="button" id="bnoise" class="on">noise</button><button type="button" id="bvideo">🎬</button><button type="button" id="bimage">🖼</button><button type="button" id="btext">text</button><button type="button" id="bscreen">screen</button><button type="button" id="beject">⏏</button>
+    <button type="button" id="bnoise" class="on">noise</button><button type="button" id="bvideo">🎬</button><button type="button" id="bimage">🖼</button><button type="button" id="btext">text</button><button type="button" id="bscreen">screen</button><button type="button" id="boff">off</button>
     <input type="file" id="fvid" accept="video/*" hidden><input type="file" id="fimg" accept="image/*" hidden></div>
   <div class="src"><input id="textval" type="text" value="REDKEY" style="flex:1;min-width:88px;background:#1a1a1e;border:1px solid #2a2a2e;color:#fafafa;font:10px monospace;border-radius:5px;padding:4px" title="text source">
     <input id="fontname" type="text" value="monospace" style="width:96px;background:#1a1a1e;border:1px solid #2a2a2e;color:#fafafa;font:10px monospace;border-radius:5px;padding:4px" title="font family">
@@ -109,12 +109,12 @@ const prevA=document.getElementById("prevA"),pAc=prevA.getContext("2d"),prevB=do
 let cols,rows,tgt,dsp,glyphs,jit,t=0;
 function rand(a){return a[(Math.random()*a.length)|0];}
 function pick(b){return(EMOJIS&&Math.random()<0.12)?rand(EMOJI_POOL):rand(BANDS[b].pool);}
-function band(x,y){const d=g("drift"),n=Math.sin(x*0.16+t*d)*Math.cos(y*0.2-t*d*0.7)+Math.sin((x+y)*0.08+t*d*0.5);return n<-0.4?0:n<0.5?1:2;}
+function band(x,y,v){if(v!==undefined){const c=v<0?0:v>1?1:v;return c<0.34?0:c<0.67?1:2;}const d=g("drift"),n=Math.sin(x*0.16+t*d)*Math.cos(y*0.2-t*d*0.7)+Math.sin((x+y)*0.08+t*d*0.5);return n<-0.4?0:n<0.5?1:2;}
 
 // ---- two source layers ----
 function mkLayer(){return{mode:"noise",ntype:"fbm",fit:"fit",video:null,stream:null,url:"",img:null,text:"REDKEY",font:"monospace",bold:true,buf:new Float32Array(0)};}
 const LA=mkLayer(),LB=mkLayer();LB.mode="off";let active=LA;
-function fillNoise(buf,nt){const sc=g("noiseScale")*0.1,z=t*0.01*g("flow"),amt=g("noiseAmt");for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){let n=noiseVal(x*sc,y*sc,z,nt);n=(n-0.5)*amt+0.5;buf[y*cols+x]=n<0?0:n>1?1:n;}}
+function fillNoise(buf,nt){if(nt==="off"){for(let i=0;i<buf.length;i++)buf[i]=0;return;}const sc=g("noiseScale")*0.1,z=t*0.1*g("flow"),amt=g("noiseAmt");for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){let n=noiseVal(x*sc,y*sc,z,nt);n=(n-0.5)*amt+0.5;buf[y*cols+x]=n<0?0:n>1?1:n;}}
 function fillMedia(buf,src,L){const sw=src.videoWidth||src.naturalWidth||src.width,sh=src.videoHeight||src.naturalHeight||src.height;if(!sw||!sh)return;const ar=sw/sh,fit=L.fit||"fit";octx.setTransform(1,0,0,1,0,0);octx.fillStyle="#000";octx.fillRect(0,0,cols,rows);let x=0,y=0,w=cols,h=rows;
   if(fit==="fit"){h=cols/ar;if(h>rows){h=rows;w=rows*ar;}else w=cols;x=(cols-w)/2;y=(rows-h)/2;}
   else if(fit==="fill"){h=cols/ar;if(h<rows){h=rows;w=rows*ar;}else w=cols;x=(cols-w)/2;y=(rows-h)/2;}
@@ -125,16 +125,18 @@ function sampleLayer(L){if(L.buf.length!==cols*rows)L.buf=new Float32Array(cols*
   if(L.mode==="noise")fillNoise(L.buf,L.ntype);
   else if(L.mode==="video"||L.mode==="screen"){if(L.video&&L.video.readyState>=2)fillMedia(L.buf,L.video,L);}
   else if(L.mode==="image"){if(L.img)fillMedia(L.buf,L.img,L);}
-  else if(L.mode==="text")fillText(L.buf,L);}
+  else if(L.mode==="text")fillText(L.buf,L);
+  else if(L.mode==="off")L.buf.fill(0);}
 function combine(){if(!bOn||LB.mode==="off"){tgt.set(LA.buf);return;}const mix=g("mix");
   for(let i=0;i<tgt.length;i++){const a=LA.buf[i],b=LB.buf[i];let r;switch(blendMode){case"mix":r=a*(1-mix)+b*mix;break;case"multiply":r=a*b;break;case"screen":r=1-(1-a)*(1-b);break;case"add":r=Math.min(1,a+b);break;case"max":r=Math.max(a,b);break;case"min":r=Math.min(a,b);break;case"difference":r=Math.abs(a-b);break;default:r=a;}tgt[i]=r;}}
-function stopVideo(L){if(L.video){try{L.video.pause();L.video.removeAttribute("src");L.video.srcObject=null;L.video.load();}catch(e){}L.video=null;}if(L.stream){try{L.stream.getTracks().forEach(tr=>tr.stop());}catch(e){}L.stream=null;}L.url="";}
+function stopVideo(L){if(L.video){try{L.video.pause();L.video.removeAttribute("src");L.video.srcObject=null;L.video.load();}catch(e){}}L.video=null;if(L.stream){try{L.stream.getTracks().forEach(tr=>tr.stop());}catch(e){}}L.stream=null;L.url="";}
+function layerOff(L){stopVideo(L);L.mode="off";refreshSrc();}
 function layerNoise(L){stopVideo(L);L.mode="noise";refreshSrc();}
 function playInto(L,url){stopVideo(L);L.url=url;L.video=document.createElement("video");L.video.src=url;L.video.loop=true;L.video.muted=true;L.video.playsInline=true;L.video.addEventListener("loadeddata",()=>{L.mode="video";refreshSrc();L.video.play();},{once:true});L.video.addEventListener("error",()=>layerNoise(L),{once:true});}
 function imgInto(L,file){stopVideo(L);const url=URL.createObjectURL(file);L.img=new Image();L.img.onload=()=>{L.mode="image";refreshSrc();fillMedia(L.buf,L.img,L);URL.revokeObjectURL(url);};L.img.src=url;}
 function textInto(L){stopVideo(L);L.mode="text";refreshSrc();}
 async function screenInto(L){if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){document.getElementById("livestat").textContent="screen unsupported";return;}try{const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});stopVideo(L);L.stream=stream;L.video=document.createElement("video");L.video.srcObject=stream;L.video.muted=true;L.video.playsInline=true;L.video.onloadedmetadata=()=>{L.mode="screen";L.video.play();refreshSrc();document.getElementById("livestat").textContent="screen live";};stream.getVideoTracks()[0].addEventListener("ended",()=>{if(L.mode==="screen")layerNoise(L);});}catch(e){document.getElementById("livestat").textContent="screen cancelled";}}
-function refreshSrc(){document.getElementById("la").classList.toggle("on",active===LA);document.getElementById("lb").classList.toggle("on",active===LB);document.getElementById("ntype").value=active.ntype;document.getElementById("fitmode").value=active.fit||"fit";document.getElementById("textval").value=active.text||"";document.getElementById("fontname").value=active.font||"monospace";document.getElementById("textbold").checked=!!active.bold;["bnoise","bvideo","bimage","btext","bscreen"].forEach(b=>document.getElementById(b).classList.remove("on"));const id={noise:"bnoise",video:"bvideo",image:"bimage",text:"btext",screen:"bscreen"}[active.mode];if(id)document.getElementById(id).classList.add("on");renderBank();}
+function refreshSrc(){document.getElementById("la").classList.toggle("on",active===LA);document.getElementById("lb").classList.toggle("on",active===LB);document.getElementById("ntype").value=active.ntype;document.getElementById("fitmode").value=active.fit||"fit";document.getElementById("textval").value=active.text||"";document.getElementById("fontname").value=active.font||"monospace";document.getElementById("textbold").checked=!!active.bold;["bnoise","bvideo","bimage","btext","bscreen","boff"].forEach(b=>document.getElementById(b).classList.remove("on"));const id={noise:"bnoise",video:"bvideo",image:"bimage",text:"btext",screen:"bscreen",off:"boff"}[active.mode];if(id)document.getElementById(id).classList.add("on");renderBank();}
 
 // ---- media bank ----
 const bank=[],MAXBANK=10,bankgrid=document.getElementById("bankgrid");
@@ -164,13 +166,13 @@ function frame(opts={}){t++;const CELL=g("cell"),tu=g("turb"),br=g("bright")*(1+
   ctx.fillStyle="#000";ctx.fillRect(0,0,innerWidth,innerHeight);
   if(g("fbOpacity")>0){const tr=TRANSFORMS.feedback,sx=tr.sx,sy=tr.sy,ox=tr.x,oy=tr.y,W=innerWidth,H=innerHeight;ctx.globalAlpha=g("fbOpacity");ctx.drawImage(fb,0,0,fb.width,fb.height,(W-W*sx)/2+ox,(H-H*sy)/2+oy,W*sx,H*sy);ctx.globalAlpha=1;}
   if(g("particleMode")>=.5){ensureParticles(CELL);ctx.font=`${Math.max(6,(CELL-4)*fontScale)}px monospace`;const cx=innerWidth/2,cy=innerHeight/2,lifeMax=g("pLife");
-    for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const i=y*cols+x,p=particles[i];dsp[i]+=(tgt[i]-dsp[i])*g("ease");const v=(dsp[i]+edgeAt(i,x,y))*br;if(v>=g("thresh")&&(!p.glyph||p.life<=0||Math.random()<g("reroll"))){p.x=x*CELL+CELL/2;p.y=y*CELL+CELL/2;p.vx=(Math.random()-.5)*1.2;p.vy=(Math.random()-.5)*1.2;p.life=lifeMax*(.45+.55*Math.random());p.bd=band(x,y);p.glyph=pick(p.bd);p.jit=Math.random()*2-1;}
+    for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const i=y*cols+x,p=particles[i];dsp[i]+=(tgt[i]-dsp[i])*g("ease");const v=(dsp[i]+edgeAt(i,x,y))*br;if(v>=g("thresh")&&(!p.glyph||p.life<=0||Math.random()<g("reroll"))){p.x=x*CELL+CELL/2;p.y=y*CELL+CELL/2;p.vx=(Math.random()-.5)*1.2;p.vy=(Math.random()-.5)*1.2;p.life=lifeMax*(.45+.55*Math.random());p.bd=band(x,y,v);p.glyph=pick(p.bd);p.jit=Math.random()*2-1;}
       if(!p.glyph)continue;const dx=cx-p.x,dy=cy-p.y,dist=Math.max(20,Math.hypot(dx,dy)),att=g("pAttract")*.035;p.vx+=g("pWind")+(dx/dist)*att;p.vy+=g("pGravity")+(dy/dist)*att;p.vx+=(hash(x+t,y)-.5)*g("pTurb");p.vy+=(hash(x,y+t)-.5)*g("pTurb");p.vx*=g("pDrag");p.vy*=g("pDrag");p.x+=p.vx;p.y+=p.vy;p.life--;if(p.life<=0||p.x<-CELL||p.x>innerWidth+CELL||p.y<-CELL||p.y>innerHeight+CELL){p.glyph=null;continue;}ctx.globalAlpha=Math.max(.15,Math.min(1,v))*Math.min(1,p.life/30);ctx.fillStyle=bc[p.bd];drawGlyph(p.x,p.y,p.glyph,p.jit,tl);}}
   else {
   ctx.font=`${Math.max(6,(CELL-4)*fontScale)}px monospace`;
   for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const i=y*cols+x;dsp[i]+=(tgt[i]-dsp[i])*g("ease");let wob=tu?Math.sin(x*0.7+t*0.09)*Math.cos(y*0.6-t*0.07)*0.1*tu:0;const v=(dsp[i]+wob+edgeAt(i,x,y))*br;
-    if(v<g("thresh")){glyphs[i]=null;continue;}if(glyphs[i]===null||Math.random()<g("reroll")){glyphs[i]=pick(band(x,y));jit[i]=Math.random()*2-1;}
-    const bd=band(x,y),fs=sizeNoise?Math.max(6,(CELL-4)*fontScale*(1+sizeNoise*(tgt[i]-.5))):0;if(fs)ctx.font=`${fs}px monospace`;ctx.globalAlpha=Math.max(0.2,Math.min(1,v));ctx.fillStyle=bc[bd];const cx=x*CELL+CELL/2,cy=y*CELL+CELL/2;drawGlyph(cx,cy,glyphs[i],jit[i],tl);}
+    if(v<g("thresh")){glyphs[i]=null;continue;}if(glyphs[i]===null||Math.random()<g("reroll")){glyphs[i]=pick(band(x,y,v));jit[i]=Math.random()*2-1;}
+    const bd=band(x,y,v),fs=sizeNoise?Math.max(6,(CELL-4)*fontScale*(1+sizeNoise*(tgt[i]-.5))):0;if(fs)ctx.font=`${fs}px monospace`;ctx.globalAlpha=Math.max(0.2,Math.min(1,v));ctx.fillStyle=bc[bd];const cx=x*CELL+CELL/2,cy=y*CELL+CELL/2;drawGlyph(cx,cy,glyphs[i],jit[i],tl);}
   }
   ctx.globalAlpha=1;if(g("vignette")>0){const r=ctx.createRadialGradient(innerWidth/2,innerHeight/2,Math.min(innerWidth,innerHeight)*0.3,innerWidth/2,innerHeight/2,Math.max(innerWidth,innerHeight)*0.7);r.addColorStop(0,"rgba(0,0,0,0)");r.addColorStop(1,`rgba(0,0,0,${g("vignette")})`);ctx.fillStyle=r;ctx.fillRect(0,0,innerWidth,innerHeight);}
   if(g("fbOpacity")>0){if(fb.width!==innerWidth||fb.height!==innerHeight){fb.width=innerWidth;fb.height=innerHeight;}fbc.clearRect(0,0,fb.width,fb.height);fbc.drawImage(canvas,0,0,canvas.width,canvas.height,0,0,fb.width,fb.height);}}
@@ -237,9 +239,10 @@ async function renderVideoFile(file,sequence=false){if(rendering)return;renderin
 document.getElementById("emoji").addEventListener("change",e=>EMOJIS=e.target.checked);
 document.getElementById("la").addEventListener("click",()=>{active=LA;refreshSrc();});
 document.getElementById("lb").addEventListener("click",()=>{active=LB;if(LB.mode==="off")LB.mode="noise";refreshSrc();});
-document.getElementById("ntype").addEventListener("change",e=>{active.ntype=e.target.value;layerNoise(active);});
+document.getElementById("ntype").addEventListener("change",e=>{active.ntype=e.target.value;if(active.ntype==="off")layerOff(active);else layerNoise(active);});
 document.getElementById("fitmode").addEventListener("change",e=>{active.fit=e.target.value;refreshSrc();});
-document.getElementById("bnoise").addEventListener("click",()=>layerNoise(active));document.getElementById("beject").addEventListener("click",()=>layerNoise(active));
+document.getElementById("bnoise").addEventListener("click",()=>layerNoise(active));
+document.getElementById("boff").addEventListener("click",()=>layerOff(active));
 document.getElementById("bvideo").addEventListener("click",()=>document.getElementById("fvid").click());document.getElementById("bimage").addEventListener("click",()=>document.getElementById("fimg").click());
 document.getElementById("btext").addEventListener("click",()=>textInto(active));document.getElementById("bscreen").addEventListener("click",()=>screenInto(active));
 document.getElementById("fvid").addEventListener("change",e=>{if(e.target.files[0])addVideo(e.target.files[0]);});
